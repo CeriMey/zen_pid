@@ -266,7 +266,6 @@ bool parseArgs(int argc, char** argv, SimConfig& cfg) {
     if (cfg.steps > 0) {
         cfg.duration = static_cast<double>(cfg.steps) * cfg.Ts;
     }
-
     return true;
 }
 
