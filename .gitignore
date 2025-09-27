@@ -1,0 +1,3 @@
+tests/pid_validation
+tests/data/latest_run.csv
+tests/data/*.png
