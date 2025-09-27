@@ -143,6 +143,7 @@ L’exécutable accepte différentes options pour configurer le scénario :
   --delay <valeur>      latence en s (défaut 0.35)
   --Ts <valeur>         période d’échantillonnage en s (défaut 0.05)
   --duration <valeur>   durée de simulation en s (défaut 40)
+  --steps <valeur>      force un nombre fixe d’itérations (outrepasse --duration)
   --imc-lambda <valeur> lambda IMC cible (facultatif)
   --noise-std <valeur>  écart-type du bruit de mesure (défaut 0.01)
   --init-Kp <valeur>    gain proportionnel initial (défaut 0.5)
@@ -180,6 +181,18 @@ python3 tests/plot_validation.py tests/data/sample_run.csv
 ```
 
 Ajoutez `--output chemin/figure.png` si vous souhaitez enregistrer une image ; par défaut, une fenêtre interactive permet d’inspecter les courbes de convergence itération après itération.
+
+### Campagne multi-modèles (3000 itérations chacun)
+
+Pour tester l’identification et la robustesse du PID sur « plein de systèmes », un script dédié génère une batterie de scénarios de 3000 itérations chacun, avec des profils de consigne et de perturbation propres à chaque modèle FOPDT :
+
+```bash
+python3 tests/run_validation_suite.py
+```
+
+La compilation est automatique ; le script enchaîne ensuite quatre procédés synthétiques (`fast_thruster`, `thermal_plate`, `slow_tank`, `precision_stage`) en respectant leurs périodes d’échantillonnage respectives. Les logs complets (3000 lignes par test) sont sauvegardés dans `tests/data/suite/<scenario>.csv` et un manifeste `tests/data/suite/suite_manifest.json` rappelle les paramètres utilisés (K, τ, L, consignes, perturbations, seed, bruit) ainsi que les métriques clés (RMSE, IAE, FIT%, gains estimés, etc.).
+
+Chaque scénario démarre par une excitation PRBS courte pour favoriser l’apprentissage, puis rejoue ses changements de consigne personnalisés. Le manifeste facilite la traçabilité et permet de rejouer/visualiser n’importe quel cas avec `tests/plot_validation.py` si besoin (`python3 tests/plot_validation.py tests/data/suite/fast_thruster.csv`).
 
 Extensions possibles (si vous le souhaitez plus tard)
 

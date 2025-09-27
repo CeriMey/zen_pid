@@ -23,6 +23,7 @@ struct SimConfig {
     double L{0.35};
     double Ts{0.05};
     double duration{40.0};
+    size_t steps{0};
     double imc_lambda{0.0}; // 0 -> auto based on defaults
     double noise_std{0.01};
     unsigned int seed{42u};
@@ -153,6 +154,7 @@ void printUsage(const char* exe) {
               << "  --delay <value>          Dead time in seconds (default 0.35)\n"
               << "  --Ts <value>             Sample time in seconds (default 0.05)\n"
               << "  --duration <value>       Simulation length in seconds (default 40)\n"
+              << "  --steps <value>          Override simulation length with a fixed iteration count\n"
               << "  --imc-lambda <value>     Target closed-loop constant (optional)\n"
               << "  --noise-std <value>      Measurement noise std dev (default 0.01)\n"
               << "  --seed <value>           RNG seed (default 42)\n"
@@ -196,6 +198,8 @@ bool parseArgs(int argc, char** argv, SimConfig& cfg) {
                 cfg.Ts = std::stod(requireValue(arg));
             } else if (arg == "--duration") {
                 cfg.duration = std::stod(requireValue(arg));
+            } else if (arg == "--steps") {
+                cfg.steps = static_cast<size_t>(std::stoull(requireValue(arg)));
             } else if (arg == "--imc-lambda") {
                 cfg.imc_lambda = std::stod(requireValue(arg));
             } else if (arg == "--noise-std") {
@@ -259,6 +263,9 @@ bool parseArgs(int argc, char** argv, SimConfig& cfg) {
     if (cfg.disturbances.empty() || cfg.disturbances.front().time > 0.0) {
         cfg.disturbances.insert(cfg.disturbances.begin(), TimeValue{0.0, 0.0});
     }
+    if (cfg.steps > 0) {
+        cfg.duration = static_cast<double>(cfg.steps) * cfg.Ts;
+    }
     return true;
 }
 
@@ -318,7 +325,10 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    const size_t steps = static_cast<size_t>(std::ceil(cfg.duration / cfg.Ts));
+    size_t steps = cfg.steps;
+    if (steps == 0) {
+        steps = static_cast<size_t>(std::ceil(cfg.duration / cfg.Ts));
+    }
     FOPDTPlant plant(cfg.K, cfg.tau, cfg.L, cfg.Ts);
 
     ctrl::AdaptivePID pid(cfg.Ts);
