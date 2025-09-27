@@ -1,0 +1,14 @@
+
+=== Résumé simulation ===
+Procédé réel: K=1.8000, tau=1.2000 s, L=0.3500 s
+Estimation finale: K=2.1030, tau=1.6397 s, L=0.3422 s (valid=oui)
+Délai discret estimé: 7 échantillons -> 0.3500 s
+Erreur de latence: -0.0078 s
+Gains PID: Kp=1.2830, Ti=1.8108 s, Td=0.1549 s
+Qualité (controller): FIT=97.3905 %, RMSE=0.0691
+Erreurs boucle fermée (vrai procédé): RMSE=4.9103, MAE=3.2662, IAE=130.6496 s, overshoot max=7.4616
+
+Rapport JSON:
+{"Ts":0.050000,"model":{"K":2.103010,"tau":1.639673,"L":0.342173,"a":0.969966,"b":0.063161,"var_eps":0.001942,"valid":true},"delay_samples":7,"pid":{"Kp":1.283042,"Ti":1.810759,"Td":0.154922,"beta":1.000000,"N":10.000000},"fit":{"rmse":0.069121,"fit_percent":97.390528},"options":{"imc_lambda":0.500000,"delay_max":17,"corr_window":200}}
+
+Log détaillé sauvegardé dans /workspace/zen_pid/tests/data/latest_run.csv
