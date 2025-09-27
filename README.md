@@ -114,6 +114,86 @@ NTNU
 
 Vérifier le rapport (JSON) : quand model.valid=true, les gains se recalculent automatiquement.
 
+## Validation par simulation
+
+Un environnement de test minimal est fourni dans `tests/pid_validation.cpp` pour observer le comportement du contrôleur sur un procédé FOPDT synthétique et vérifier la qualité des estimations (gain, constante de temps, latence) ainsi que les performances en boucle fermée.
+
+### Compilation & exécution rapides
+
+```bash
+cd tests
+./run_validation.sh
+```
+
+Le script compile un exécutable `pid_validation` (g++ C++17) puis lance une simulation de 40 s avec des changements de consigne et une perturbation de charge. La sortie console résume :
+
+- les paramètres réels du procédé utilisés pour générer les données,
+- l’estimation finale fournie par `AdaptivePID` (y compris le délai en secondes et en nombre d’échantillons),
+- les gains PID calculés,
+- des métriques de suivi (FIT%, RMSE interne et erreur RMSE/MAE/IAE vs. consigne),
+- une excitation PRBS initiale appliquée en feedforward pour accélérer l’identification (désactivable via `--no-excitation`).
+
+### Options principales
+
+L’exécutable accepte différentes options pour configurer le scénario :
+
+```
+  --K <valeur>          gain procédé (défaut 1.8)
+  --tau <valeur>        constante de temps en s (défaut 1.2)
+  --delay <valeur>      latence en s (défaut 0.35)
+  --Ts <valeur>         période d’échantillonnage en s (défaut 0.05)
+  --duration <valeur>   durée de simulation en s (défaut 40)
+  --steps <valeur>      force un nombre fixe d’itérations (outrepasse --duration)
+  --imc-lambda <valeur> lambda IMC cible (facultatif)
+  --noise-std <valeur>  écart-type du bruit de mesure (défaut 0.01)
+  --init-Kp <valeur>    gain proportionnel initial (défaut 0.5)
+  --init-Ti <valeur>    temps intégral initial en s (défaut 1.0)
+  --init-Td <valeur>    temps dérivatif initial en s (défaut 0.0)
+  --umin <valeur>       saturation minimum de sortie (défaut -5)
+  --umax <valeur>       saturation maximum de sortie (défaut +5)
+  --excitation-duration <valeur> durée de l’excitation PRBS initiale (défaut 4 s)
+  --excitation-amplitude <valeur> amplitude excitation (défaut 1.5)
+  --excitation-period <valeur> période de mise à jour PRBS (défaut 0.5 s)
+  --no-excitation       désactive l’excitation initiale
+  --sp t:valeur         changement de consigne (répétable)
+  --dist t:valeur       perturbation de charge additive (répétable)
+  --csv fichier         export CSV détaillé
+  --delay-max N         forcer delay_max (échantillons)
+```
+
+Exemple avec une consigne supplémentaire, plus de bruit et export CSV :
+
+```bash
+./run_validation.sh --sp 5:0.8 --noise-std 0.02 --csv validation.csv
+```
+
+Le fichier CSV contient le chronogramme complet (setpoint, mesure bruitée, commande, paramètres estimés, métriques FIT) pour analyse ultérieure (Python, Excel, etc.).
+
+### Tracer les courbes de convergence
+
+Par défaut, `run_validation.sh` enregistre le log complet dans `tests/data/latest_run.csv` (≈ 800 lignes pour la simulation de 40 s) et conserve la console dans `tests/data/sample_run.log` si vous la redirigez. Un exemple de capture est fourni dans `tests/data/sample_run.csv`.
+
+Un script Python (`tests/plot_validation.py`) permet de tracer l’évolution de la consigne, de la sortie réelle/bruitée, des paramètres estimés (K, τ, L) et des gains PID (Kp, Ti, Td) à chaque itération. Il nécessite `matplotlib` :
+
+```bash
+python3 -m pip install --user matplotlib  # une seule fois
+python3 tests/plot_validation.py tests/data/sample_run.csv
+```
+
+Ajoutez `--output chemin/figure.png` si vous souhaitez enregistrer une image ; par défaut, une fenêtre interactive permet d’inspecter les courbes de convergence itération après itération.
+
+### Campagne multi-modèles (3000 itérations chacun)
+
+Pour tester l’identification et la robustesse du PID sur « plein de systèmes », un script dédié génère une batterie de scénarios de 3000 itérations chacun, avec des profils de consigne et de perturbation propres à chaque modèle FOPDT :
+
+```bash
+python3 tests/run_validation_suite.py
+```
+
+La compilation est automatique ; le script enchaîne ensuite quatre procédés synthétiques (`fast_thruster`, `thermal_plate`, `slow_tank`, `precision_stage`) en respectant leurs périodes d’échantillonnage respectives. Les logs complets (3000 lignes par test) sont sauvegardés dans `tests/data/suite/<scenario>.csv` et un manifeste `tests/data/suite/suite_manifest.json` rappelle les paramètres utilisés (K, τ, L, consignes, perturbations, seed, bruit) ainsi que les métriques clés (RMSE, IAE, FIT%, gains estimés, etc.).
+
+Chaque scénario démarre par une excitation PRBS courte pour favoriser l’apprentissage, puis rejoue ses changements de consigne personnalisés. Le manifeste facilite la traçabilité et permet de rejouer/visualiser n’importe quel cas avec `tests/plot_validation.py` si besoin (`python3 tests/plot_validation.py tests/data/suite/fast_thruster.csv`).
+
 Extensions possibles (si vous le souhaitez plus tard)
 
 Autotuning “relay test” (Åström‑Hägglund) comme pré‑amorçage des gains avant identification fine. 
