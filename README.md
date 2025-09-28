@@ -114,9 +114,43 @@ NTNU
 
 Vérifier le rapport (JSON) : quand model.valid=true, les gains se recalculent automatiquement.
 
+### Table de calibration persistante
+
+Pour éviter de « réapprendre » après chaque redémarrage, `AdaptivePID` peut sauvegarder son état interne complet (modèle identifié, gains PID, historique de délai, intégrale, covariance RLS, etc.) dans un fichier texte compact :
+
+```cpp
+ctrl::AdaptivePID pid(Ts);
+// ... exploitation en ligne ...
+pid.saveCalibration("/chemin/vers/calibration.tbl");
+
+ctrl::AdaptivePID pid_redemarrage(Ts);
+pid_redemarrage.setOptions(opts);      // mêmes options qu’à l’apprentissage
+pid_redemarrage.loadCalibration("/chemin/vers/calibration.tbl");
+```
+
+`captureCalibration()` renvoie également une structure `CalibrationSnapshot` manipulable en mémoire (utile pour persister dans une base de données ou transférer l’état sur le réseau). Le format de fichier versionné (`#AdaptivePID-calibration-v1`) garde la précision en double et reste lisible manuellement si besoin.
+
 ## Validation par simulation
 
 Un environnement de test minimal est fourni dans `tests/pid_validation.cpp` pour observer le comportement du contrôleur sur un procédé FOPDT synthétique et vérifier la qualité des estimations (gain, constante de temps, latence) ainsi que les performances en boucle fermée.
+
+### Suivi polynomial sur moteur inertiel
+
+Pour valider l’apprentissage sur une dynamique « moteur + inertie » de second ordre, le programme `tests/test_motor_polynomial.cpp` simule un asservissement de position avec une consigne polynomiale bornée (accélération/décélération douce) et une perturbation d’accélération transitoire.
+
+```bash
+g++ -std=c++17 -O2 -I. tests/test_motor_polynomial.cpp -o tests/test_motor_polynomial
+./tests/test_motor_polynomial
+```
+
+L’exécutable génère `tests/data/motor_polynomial_run.csv` contenant le chronogramme complet (consigne, position vraie/bruitée, commande, modèle identifié, FIT%) et vérifie automatiquement plusieurs critères :
+
+- erreur quadratique moyenne < 0,05 rad sur 40 s,
+- erreur moyenne sur les 5 dernières secondes < 0,05 rad (absence de biais stationnaire),
+- erreur absolue maximale < 0,25 rad malgré la perturbation,
+- modèle identifié cohérent (`K ≈ 0,68`, `τ ≈ 1,16 s`, `model.valid=true`, `FIT ≈ 95 %` avec les paramètres par défaut).
+
+Le rapport console confirme la qualité du suivi et des paramètres appris ; il peut être archivé avec le CSV pour audit.
 
 ### Compilation & exécution rapides
 
