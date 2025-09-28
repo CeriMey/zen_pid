@@ -1,3 +1,6 @@
 tests/pid_validation
-tests/data/latest_run.csv
+tests/data/*.csv
+!tests/data/dual_axis_log.csv
 tests/data/*.png
+dual_axis_example
+tests/data/*.cal

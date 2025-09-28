@@ -159,6 +159,30 @@ cd tests
 ./run_validation.sh
 ```
 
+### Exemple : deux axes PID avec consignes filtrées et scénario multi-phases
+
+Le fichier `tests/dual_axis_example.cpp` illustre comment piloter deux axes
+(`x` et `y`) avec des PID adaptatifs indépendants tout en appliquant un filtre
+passe-bas premier ordre à chaque consigne. À chaque lancement, le programme
+recharge les calibrations enregistrées précédemment afin de reprendre les
+paramètres identifiés lors de l’exécution précédente.
+
+La simulation génère 10 000 points d’échantillonnage (période 10 ms) structurés
+en 10 phases « démarrage/arrêt » alternant des segments très lents (rampe,
+sinus) et très rapides (carré haute fréquence, chirp, rafales aléatoires). Les
+consignes brutes sont lissées par les filtres passe-bas, puis les réponses des
+deux procédés FOPDT simulés sont enregistrées dans `tests/data/dual_axis_log.csv`
+pour analyse offline.
+
+```bash
+g++ -std=c++17 -O2 tests/dual_axis_example.cpp -o dual_axis_example
+./dual_axis_example
+```
+
+Les calibrations (`pid_x.cal`, `pid_y.cal`) ainsi que le CSV de trajectoire sont
+stockés dans `tests/data/` et automatiquement mis à jour à la fin de la
+simulation.
+
 Le script compile un exécutable `pid_validation` (g++ C++17) puis lance une simulation de 40 s avec des changements de consigne et une perturbation de charge. La sortie console résume :
 
 - les paramètres réels du procédé utilisés pour générer les données,
